@@ -1,44 +1,53 @@
-version: '2'
-
 services:
-    mongo:
-        container_name: mongo
-        image: mongo:latest
-        volumes:
-            - ./data/mongo:/data/db
-        user: "${UID_GID}"
-        ports:
-            - "27017:27017"
-        networks:
-            - common
-        restart: always    
-
     redis:
         container_name: redis
-        image: redis:alpine
-        command: ["redis-server", "--appendonly", "yes"]
-        volumes:
-            - ./data/redis:/data
-        user: "${UID_GID}"
+        image: 'redis:alpine'
         ports:
-            - "6379:6379"
+            - '${FORWARD_REDIS_PORT:-6379}:6379'
+        volumes:
+            - 'shared-redis-data:/data'
         networks:
-            - common
+            - shared-network
+        healthcheck:
+            test:
+                - CMD
+                - redis-cli
+                - ping
+            retries: 3
+            timeout: 5s
         restart: always
-
+    
     mysql:
-        container_name: mysql
-        image: mysql:5.7
-        volumes:
-            - ./data/mysql:/var/lib/mysql
-        user: "${UID_GID}"
+        container_name: mysql-mysql-server
+        image: 'mysql/mysql-server:8.0'
         ports:
-            - "3306:3306"
+            - '${FORWARD_DB_PORT:-3306}:3306'
         environment:
-            MYSQL_ROOT_PASSWORD: 'justapassword'
+            MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_ROOT_HOST: '%'
+            MYSQL_USER: '${DB_USERNAME}'
+            MYSQL_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_ALLOW_EMPTY_PASSWORD: 1
+        volumes:
+            - 'shared-sql-data:/var/lib/mysql'
+            - './dumps:/sql-data'
         networks:
-            - common
-        restart: always
+            - shared-network
+        healthcheck:
+            test:
+                - CMD
+                - mysqladmin
+                - ping
+                - '-p${DB_PASSWORD}'
+            retries: 3
+            timeout: 5s
 
 networks:
-    common:
+    shared-network:
+        external: true
+          
+volumes:
+    shared-sql-data:
+        external: true 
+    shared-redis-data:
+        external: true 

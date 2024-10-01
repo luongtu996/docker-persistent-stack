@@ -1,0 +1,21 @@
+    # All option with comment is optional, to use it, just uncomment it
+    mysql:
+        container_name: mysql/mysql-server
+        image: 'mysql/mysql-server:8.0'
+        ports:
+            - '${FORWARD_DB_PORT:-3306}:3306'
+        user: "${UID_GID}"
+        environment:
+            MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+        volumes:
+            - 'sail-mysql:/var/lib/mysql'
+        networks:
+            - shared-netword
+        healthcheck:
+            test:
+                - CMD
+                - mysqladmin
+                - ping
+                - '-p${DB_PASSWORD}'
+            retries: 3
+            timeout: 5s
