@@ -41,7 +41,8 @@ services:
                 - '-p${DB_PASSWORD}'
             retries: 3
             timeout: 5s
-
+        restart: always
+        
 networks:
     shared-network:
         external: true
